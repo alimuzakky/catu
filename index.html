@@ -383,6 +383,7 @@ tr.sel td{background:var(--band)}
 .seg button[aria-pressed="true"]{background:var(--band);color:var(--ink);font-weight:600}
 .seg button[data-t="out"][aria-pressed="true"]{border-color:var(--out)}
 .seg button[data-t="in"][aria-pressed="true"]{border-color:var(--in)}
+.dact{display:flex;gap:10px;flex-wrap:wrap}
 .form{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))}
 .fld{display:flex;flex-direction:column;gap:4px;min-width:0}
 .fld>label{font-size:13px;color:var(--ink-2)}
@@ -440,7 +441,21 @@ tr.sel td{background:var(--band)}
   .main{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
   .toast{bottom:calc(96px + env(safe-area-inset-bottom,0px))}
   .overlay{align-items:end;padding:0}
-  .dlg{border-radius:20px 20px 0 0;max-width:100%;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));border-bottom:0}
+  .overlay{overflow:hidden}
+  .dlg{border-radius:22px 22px 0 0;max-width:100%;padding:10px 16px calc(14px + env(safe-area-inset-bottom,0px));border-bottom:0;gap:12px;max-height:calc(100vh - 40px);max-height:calc(100dvh - 40px - env(safe-area-inset-top,0px));overflow:hidden}
+  .dlg::before{content:'';display:block;width:40px;height:4px;border-radius:4px;background:var(--line);margin:0 auto 2px;flex:none}
+  .dlg>.ch{flex:none;gap:10px}.dlg>.ch h3{font-size:19px}
+  .dlg .seg{display:flex;width:100%}.dlg .seg button{flex:1;justify-content:center;padding:8px 10px}
+  .dlg .form{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 10px;overflow-y:auto;min-height:0;flex:1 1 auto;padding:2px 1px 6px;overscroll-behavior:contain}
+  .dlg .form .wide{grid-column:1/-1}
+  .dlg .form>.fld:last-child{grid-column:1/-1}
+  .dlg #f-msg{flex:none;margin:0;min-height:0}
+  .dlg #f-msg:empty{display:none}
+  .dact{flex:none;flex-wrap:nowrap}.dact .btn{flex:1}.dact .btn.ghost{flex:0 0 auto;padding:0 18px}
+  .catgrid{display:flex;flex-wrap:wrap;gap:7px}
+  .catgrid button{flex-direction:row;gap:7px;padding:4px 12px 4px 5px;border-radius:999px;font-size:13.5px;text-align:left;line-height:1.15}
+  .catgrid button .ci{width:26px;height:26px;border-radius:50%}
+  .catgrid button .ci svg{width:15px;height:15px}
   .fld input,.fld select{font-size:16px}
   .list{max-height:none}
   .row{padding:11px 0}
@@ -693,7 +708,7 @@ tr.sel td{background:var(--band)}
         </div>
         <div class="card"><details><summary>Tabel kategori per bulan</summary><div class="tbl mx" id="kat-table"></div></details></div>
       </section>
-      <p class="small" id="ver" style="text-align:center;padding:8px 0">Catu · versi 14 Nov 2026 · aplikasi + login PIN</p>
+      <p class="small" id="ver" style="text-align:center;padding:8px 0">Catu · versi 14 Nov 2026 · form catat ringkas</p>
     </main>
   </div>
 </div>
@@ -726,7 +741,7 @@ tr.sel td{background:var(--band)}
       <div class="fld"><label for="f-note">Rincian</label><input id="f-note" type="text" placeholder="mis. susu alula"></div>
     </div>
     <p class="small" id="f-msg" role="status"></p>
-    <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="f-save" type="submit">Simpan transaksi</button><button class="btn ghost" id="f-close" type="button">Tutup</button></div>
+    <div class="dact"><button class="btn" id="f-save" type="submit">Simpan transaksi</button><button class="btn ghost" id="f-close" type="button">Tutup</button></div>
   </form>
 </div>
 <div class="auth" id="auth" hidden role="dialog" aria-modal="true" aria-labelledby="au-title">
