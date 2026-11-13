@@ -1,0 +1,14 @@
+CATU - paket aplikasi (PWA)
+
+Isi paket ini diunggah ke GitHub Pages (atau hosting statis lain, misalnya Netlify).
+Semua file di folder ini harus berada di akar situs: index.html, config.js, manifest.webmanifest,
+sw.js, folder icons, dan file .nojekyll.
+
+Langkah singkat:
+1. Apps Script: ganti Code.gs, lalu Deploy > Manage deployments > pensil > New version,
+   Execute as: Me, Who has access: Anyone. Salin URL web app (berakhiran /exec).
+2. Spreadsheet: muat ulang, menu Keuangan > Anggota: tambah / atur ulang PIN.
+3. GitHub: buat repository baru, unggah isi folder ini, aktifkan Settings > Pages (branch main, folder root).
+4. Buka alamat Pages di Chrome Android, isi alamat server (URL /exec) sekali, login, lalu menu titik tiga > Instal aplikasi.
+
+Alamat server boleh diisi di config.js (baris window.CATU_API) supaya tidak perlu diisi di tiap HP.
