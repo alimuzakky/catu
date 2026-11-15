@@ -709,7 +709,7 @@ tr.sel td{background:var(--band)}
         </div>
         <div class="card"><details><summary>Tabel kategori per bulan</summary><div class="tbl mx" id="kat-table"></div></details></div>
       </section>
-      <p class="small" id="ver" style="text-align:center;padding:8px 0">Catu · versi 14 Nov 2026 · warna bawah disamakan</p>
+      <p class="small" id="ver" style="text-align:center;padding:8px 0">Catu · versi 15 Nov 2026 · warna bar sistem</p>
     </main>
   </div>
 </div>
@@ -1754,9 +1754,17 @@ function render(){
   RENDER[state.page]();
   countUps();
 }
+function syncBar(){
+  const tc=document.querySelector('meta[name=theme-color]');if(!tc)return;
+  if(state.page==='dash'&&!window.__dark&&window.__hdr){tc.content=window.__hdr;return}
+  const c=getComputedStyle(document.body).backgroundColor||'';let rgb=null,m;
+  if(m=c.match(/^rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/))rgb=[+m[1],+m[2],+m[3]];
+  else if(m=c.match(/color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/))rgb=[m[1],m[2],m[3]].map(v=>Math.round(+v*255));
+  tc.content=rgb?'#'+rgb.map(v=>v.toString(16).padStart(2,'0')).join(''):'#eaeef5';
+}
 function setPage(id){
   if(id==='masuk'||id==='keluar'){state.tab=id==='masuk'?'in':'out';id='trans'}
-  if(!RENDER[id])return; setAnim(); if(id!=='cari')clearRange(); state.page=id; state.del=null; if(id==='set')state.pf=null; closeDrawer(); render();
+  if(!RENDER[id])return; setAnim(); if(id!=='cari')clearRange(); state.page=id; state.del=null; if(id==='set')state.pf=null; closeDrawer(); render(); syncBar();
   const m=document.scrollingElement||document.documentElement; m.scrollTop=0;
 }
 function applyData(d,fromCache){
@@ -1952,7 +1960,7 @@ function applyTheme(){
   const A=ACC[pref.accent];
   if(dark){root.style.setProperty('--mb1','color-mix(in srgb,'+a[2]+' 26%,#0a1020)');root.style.setProperty('--mb2','color-mix(in srgb,'+a[2]+' 34%,#0b1426)');root.style.setProperty('--st1','color-mix(in srgb,'+A.s[0]+' 70%,#0b1220)');root.style.setProperty('--st2','color-mix(in srgb,'+A.s[1]+' 70%,#0b1220)');root.style.setProperty('--navy',a[2])}
   else{root.style.setProperty('--mb1',A.h[0]);root.style.setProperty('--mb2',A.h[1]);root.style.setProperty('--st1',A.s[0]);root.style.setProperty('--st2',A.s[1]);root.style.setProperty('--navy',A.nv)}
-  const tc=document.querySelector('meta[name=theme-color]');if(tc)tc.content=dark?'#0b1426':A.h[0];
+  window.__dark=dark;window.__hdr=A.h[0];syncBar();
   document.querySelectorAll('#modetabs button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.m===pref.mode)));
   document.querySelectorAll('#swatches button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.a===pref.accent)));
 }
