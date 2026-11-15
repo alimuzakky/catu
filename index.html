@@ -438,17 +438,15 @@ tr.sel td{background:var(--band)}
   .tabbar button[aria-current="page"]{background:color-mix(in srgb,var(--ink) 12%,transparent);color:var(--ink)}
   .tabbar button[aria-current="page"] svg{color:var(--ink)}
   .tabbar button:active{transform:scale(.94)}
-  .tabbar{transition:right .62s cubic-bezier(.34,1.5,.5,1),gap .5s ease,transform .5s cubic-bezier(.34,1.7,.5,1);transform-origin:50% 100%;will-change:transform}
-  .tabbar button{position:relative;z-index:1;transition:max-width .5s cubic-bezier(.3,1,.4,1),opacity .25s ease,transform .5s cubic-bezier(.34,1.56,.64,1),background .2s,color .2s}
+  .tabbar{transition:transform .55s cubic-bezier(.22,1,.36,1),opacity .35s ease;transform-origin:50% 100%;will-change:transform}
+  .tabbar button{position:relative;z-index:1}
   .tb-ind{position:absolute;left:0;top:7px;height:48px;width:48px;border-radius:999px;background:color-mix(in srgb,var(--ink) 12%,transparent);pointer-events:none;opacity:0;transition:opacity .2s;z-index:0;will-change:transform,width}
   .tabbar.ready .tb-ind{opacity:1}
-  .tabbar.ready:not(.mini):not(.anim) button[aria-current="page"]{background:transparent}
-  .tabbar.mini .tb-ind,.tabbar.anim .tb-ind{opacity:0}
-  .tabbar.mini{right:calc(100% - 78px);gap:0}
-  .tabbar.mini button:not([aria-current="page"]){max-width:0;opacity:0;transform:scale(.3);pointer-events:none}
-  .fab{transition:width .5s cubic-bezier(.34,1.56,.64,1),height .5s cubic-bezier(.34,1.56,.64,1),transform .5s cubic-bezier(.34,1.7,.5,1);transform-origin:50% 100%}
-  .tabbar.mini + .fab{width:56px;height:56px}
-  @media (prefers-reduced-motion:reduce){.tabbar,.tabbar button,.fab,.tb-ind{transition:none!important}}
+  .tabbar.ready button[aria-current="page"]{background:transparent}
+  .fab{transition:transform .55s cubic-bezier(.22,1,.36,1);transform-origin:100% 100%}
+  body.navshrink .tabbar{transform:scale(.8) translateY(3px)}
+  body.navshrink .fab{transform:scale(.8) translateY(3px)}
+  @media (prefers-reduced-motion:reduce){.tabbar,.fab,.tb-ind{transition:none!important}body.navshrink .tabbar,body.navshrink .fab{transform:none}}
   .fab{display:grid;place-items:center;position:fixed;right:12px;bottom:calc(14px + env(safe-area-inset-bottom,0px));width:64px;height:64px;border-radius:50%;border:0;background:var(--btn);color:var(--btn-ink);box-shadow:0 10px 30px rgba(15,23,34,.22),0 2px 6px rgba(15,23,34,.1);cursor:pointer;z-index:31}
   .main{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
   .toast{bottom:calc(96px + env(safe-area-inset-bottom,0px))}
@@ -720,7 +718,7 @@ tr.sel td{background:var(--band)}
         </div>
         <div class="card"><details><summary>Tabel kategori per bulan</summary><div class="tbl mx" id="kat-table"></div></details></div>
       </section>
-      <p class="small" id="ver" style="text-align:center;padding:8px 0">Catu · versi 16 Nov 2026 · navigasi elastis</p>
+      <p class="small" id="ver" style="text-align:center;padding:8px 0">Catu · versi 16 Nov 2026 · navigasi mengecil saat gulir</p>
     </main>
   </div>
 </div>
@@ -1780,40 +1778,25 @@ function setPage(id){
   const m=document.scrollingElement||document.documentElement; m.scrollTop=0;
 }
 
-/* ---------- navigasi bawah elastis: menyusut saat digulir turun, mengembang saat digulir naik ---------- */
+/* ---------- navigasi bawah: mengecil selama digulir, melebar lagi saat gulir berhenti (gaya iOS) ---------- */
 const bar=document.querySelector('#tabbar'), ind=document.querySelector('#tb-ind');
 function placeInd(anim){
   const cur=bar.querySelector('button[aria-current="page"]'); if(!cur||!bar.offsetWidth)return;
-  if(bar.classList.contains('mini')||bar.classList.contains('anim'))return;
-  const br=bar.getBoundingClientRect(),r=cur.getBoundingClientRect(),x=Math.round(r.left-br.left-1),w=Math.round(r.width);
+  const br=bar.getBoundingClientRect(),r=cur.getBoundingClientRect(),sc=br.width/(bar.offsetWidth||1)||1;
+  const x=Math.round((r.left-br.left)/sc-1),w=Math.round(r.width/sc);
   const prev=ind._x==null?null:{x:ind._x,w:ind._w}; ind._x=x; ind._w=w;
   ind.style.transform=`translateX(${x}px)`; ind.style.width=w+'px'; bar.classList.add('ready');
-  if(anim&&prev&&!reduceMotion&&(prev.x!==x)){
+  if(anim&&prev&&!reduceMotion&&prev.x!==x){
     const lo=Math.min(prev.x,x),hi=Math.max(prev.x+prev.w,x+w);
-    ind.animate([{transform:`translateX(${prev.x}px)`,width:prev.w+'px'},{transform:`translateX(${lo}px)`,width:(hi-lo)+'px',offset:.42,easing:'cubic-bezier(.2,.7,.3,1)'},{transform:`translateX(${x}px)`,width:w+'px'}],{duration:560,easing:'cubic-bezier(.34,1.56,.64,1)'});
-    const ic=cur.querySelector('svg'); if(ic)ic.animate([{transform:'scale(.72)'},{transform:'scale(1.2)',offset:.55},{transform:'scale(1)'}],{duration:480,easing:'ease-out'});
+    ind.animate([{transform:`translateX(${prev.x}px)`,width:prev.w+'px'},{transform:`translateX(${lo}px)`,width:(hi-lo)+'px',offset:.4,easing:'cubic-bezier(.3,.7,.3,1)'},{transform:`translateX(${x}px)`,width:w+'px'}],{duration:480,easing:'cubic-bezier(.22,1,.36,1)'});
   }
 }
-let navT=0;
-function setMini(on){
-  if(bar.classList.contains('mini')===on)return;
-  bar.classList.add('anim'); bar.classList.toggle('mini',on);
-  clearTimeout(navT); navT=setTimeout(()=>{bar.classList.remove('anim');placeInd(false)},700);
-}
-bar.addEventListener('click',e=>{if(bar.classList.contains('mini')){e.preventDefault();e.stopPropagation();setMini(false)}},true);
-let lastY=window.scrollY||0,acc=0,relT=0;
-const fabEl=document.querySelector('#fab');
+let shrinkT=0,lastY=window.scrollY||0;
 window.addEventListener('scroll',()=>{
-  if(!bar.offsetWidth)return;
-  const y=window.scrollY||document.documentElement.scrollTop||0,dy=y-lastY; lastY=y;
-  if(y<30){setMini(false);acc=0}
-  else{acc=(dy>0)===(acc>0)?acc+dy:dy; if(acc>44)setMini(true); else if(acc<-26)setMini(false)}
-  if(!reduceMotion&&dy){
-    const k=Math.max(-1,Math.min(1,dy/60))*0.05;
-    const t=`scale(${1+Math.abs(k)*0.5},${1-Math.abs(k)})`;
-    bar.style.transform=t; fabEl.style.transform=t;
-    clearTimeout(relT); relT=setTimeout(()=>{bar.style.transform='';fabEl.style.transform=''},110);
-  }
+  if(!bar.offsetWidth||reduceMotion)return;
+  const y=window.scrollY||document.documentElement.scrollTop||0; if(Math.abs(y-lastY)<1)return; lastY=y;
+  document.body.classList.add('navshrink');
+  clearTimeout(shrinkT); shrinkT=setTimeout(()=>document.body.classList.remove('navshrink'),170);
 },{passive:true});
 window.addEventListener('resize',()=>placeInd(false));
 requestAnimationFrame(()=>requestAnimationFrame(()=>placeInd(false)));
