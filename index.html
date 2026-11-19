@@ -480,9 +480,6 @@ tr.sel td{background:var(--band)}
 }
 @media (prefers-reduced-motion:reduce){.side{transition:none}}
 </style>
-</head>
-<body>
-
 
 <div class="app">
   <aside class="side" id="side" aria-label="Menu utama">
@@ -524,14 +521,9 @@ tr.sel td{background:var(--band)}
         <div class="card alerts" id="alerts" hidden></div>
         <div class="card" id="bills-home" hidden></div>
         <div class="tiles" id="tiles"></div>
-        <div class="card" id="donut-card"><div class="ch"><h3>Pengeluaran per kategori</h3><button class="lnk" data-go="bulan" type="button">Statistik</button></div><div class="donut" id="donut"></div></div>
         <div class="grid2">
           <div class="card"><div class="ch"><h3 id="bud-title">Anggaran per kategori</h3><button class="lnk" data-go="keluar" type="button">Lihat semua</button></div><div class="cats" id="cats-dash"></div></div>
           <div class="card"><div class="ch"><h3>Transaksi terbaru</h3><button class="lnk" data-go="keluar" type="button">Semua transaksi</button></div><div class="list" id="recent"></div></div>
-        </div>
-        <div class="grid2">
-          <div class="card"><div class="ch"><h3>Pemasukan vs pengeluaran per bulan</h3><div class="legend"><span><span class="dot in"></span>Pemasukan</span><span><span class="dot out"></span>Pengeluaran</span></div></div><div class="chart" id="c-dash-month"></div></div>
-          <div class="card"><div class="ch"><h3>Pengeluaran harian</h3><span class="small" id="dash-day-sub"></span></div><div class="chart" id="c-dash-day"></div><p class="small" id="dash-day-note"></p></div>
         </div>
       </section>
 
@@ -708,6 +700,7 @@ tr.sel td{background:var(--band)}
           <p class="small" id="minsight"></p>
           <details><summary>Lihat sebagai tabel</summary><div class="tbl" id="mtable"></div></details>
         </div>
+        <div class="card" id="donut-card"><div class="ch"><h3>Pengeluaran siklus ini</h3></div><div class="donut" id="donut"></div></div>
         <div class="card" id="kat-card">
           <div class="ch"><h3 id="kat-title">Analisis per kategori</h3>
             <div class="tabs" id="ktabs" role="group" aria-label="Jenis kategori"><button type="button" data-k="out" aria-pressed="true">Pengeluaran</button><button type="button" data-k="in" aria-pressed="false">Pemasukan</button></div></div>
@@ -724,7 +717,7 @@ tr.sel td{background:var(--band)}
         </div>
         <div class="card"><details><summary>Tabel kategori per bulan</summary><div class="tbl mx" id="kat-table"></div></details></div>
       </section>
-      <p class="small" id="ver" style="text-align:center;padding:8px 0">Catu · versi 18 Nov 2026 · keypad login baru</p>
+      <p class="small" id="ver" style="text-align:center;padding:8px 0">Catu · versi 19 Nov 2026 · dashboard lebih ringkas</p>
     </main>
   </div>
 </div>
@@ -1238,26 +1231,21 @@ function tile(color,title,val,sub){return `<div class="tile"><div class="tt"><sp
 function prevLine(get){const i=prevIdx();if(i<0)return 'Bulan lalu: belum ada catatan';const p=get(M[i]);return p?`${SH[i]}: ${rp(p)}`:`${SH[i]}: –`}
 function rDash(){
   setGreeting();
-  const hut=sum(cyc.outs.filter(t=>t.c==='Hutang')), tab=sum(cyc.outs.filter(t=>t.c==='Tabungan'));
   $('#hero').innerHTML=heroHTML(); drawMenu();
   const al=Object.keys(BUD).length?budItems().filter(i=>i.b&&!i.st.goal&&i.st.p>=80):[];
   const box=$('#alerts'); box.hidden=!al.length;
   if(al.length){
-    box.innerHTML='<h3>Perlu perhatian</h3>'+al.slice(0,4).map(i=>{const rest=i.b-i.s;
+    box.innerHTML='<h3>Perlu perhatian</h3>'+al.slice(0,2).map(i=>{const rest=i.b-i.s;
       return `<div class="al" style="color:${i.st.c}"><span aria-hidden="true">${i.st.ic}</span><span><b>${esc(i.c)}</b> ${i.st.p>100?'melebihi anggaran '+rp(-rest):'sudah '+Math.round(i.st.p)+'% anggaran, sisa '+rp(rest)}</span></div>`}).join('')+
-      (al.length>4?`<p class="small">dan ${al.length-4} kategori lain</p>`:'');
+      (al.length>2?`<p class="small">dan ${al.length-2} kategori lain · <button class="lnk" data-go="keluar" type="button">Lihat anggaran</button></p>`:'');
   }
   $('#tiles').innerHTML=
     tile('var(--in)','Pemasukan',rp(cyc.totIn),prevLine(m=>m.in))+
-    tile('var(--out)','Pengeluaran',rp(cyc.totOut),prevLine(m=>m.out))+
-    tile('var(--debt)','Utang dibayar',rp(hut),prevLine(m=>m.debt))+
-    tile('var(--save)','Tabungan',rp(tab),prevLine(m=>m.sv));
-  billsHome(); $('#donut').innerHTML=donutHTML(catList(cyc.outs),cyc.totOut);
+    tile('var(--out)','Pengeluaran',rp(cyc.totOut),prevLine(m=>m.out));
+  billsHome();
   $('#bud-title').textContent=Object.keys(BUD).length?'Anggaran per kategori':'Pengeluaran per kategori';
-  $('#cats-dash').innerHTML=budHTML({limit:7,detail:true});
-  drawBars($('#c-dash-month'),monthCfg(false));
-  drawDaily($('#c-dash-day'),'#dash-day-sub','#dash-day-note',null);
-  $('#recent').innerHTML=listHTML(cyc.rows,'Belum ada transaksi di siklus ini. Tekan + untuk mencatat.',6);
+  $('#cats-dash').innerHTML=budHTML({limit:5,detail:true});
+  $('#recent').innerHTML=listHTML(cyc.rows,'Belum ada transaksi di siklus ini. Tekan + untuk mencatat.',5);
 }
 function rMasuk(){
   const cs=catList(cyc.ins);
@@ -1456,6 +1444,7 @@ function rTabung(){
 function rBulan(){
   $('#bulan-title').textContent='Pemasukan vs pengeluaran, '+yr;
   drawBars($('#c-bulan'),monthCfg(true));
+  $('#donut').innerHTML=donutHTML(catList(cyc.outs),cyc.totOut);
   const i=state.sel, m=M[i];
   $('#mchips').innerHTML=M.map((x,k)=>`<button type="button" class="chip${x.in==null?' empty':''}" data-i="${k}" aria-pressed="${k===i}">${SH[k]}</button>`).join('');
   const box=$('#mdetail');
@@ -1724,7 +1713,7 @@ document.addEventListener('click',async e=>{
 });
 function billsHome(){
   const box=$('#bills-home'), all=billsSorted(), open=all.filter(x=>!x.i.paid);
-  box.hidden=!all.length; if(!all.length)return;
+  box.hidden=!open.length; if(!open.length)return;
   const left=open.reduce((a,x)=>a+x.b.a,0);
   box.innerHTML=`<div class="ch"><h3>Tagihan rutin</h3><button class="lnk" data-go="tagihan" type="button">Lihat semua</button></div>`+
     (open.length?`<p class="small">${open.length} belum dibayar · ${rp(left)}</p>`+open.slice(0,3).map(({b,i})=>`<div class="bill">${catIcon(b.c,1)}<div class="bt"><b>${esc(b.n)}</b><span class="small">${rp(b.a)} · ${dshort(i.due)}</span></div>${billPill(i)}<button class="btn sm" type="button" data-bpay="${b.id}">Bayar</button></div>`).join(''):'<p class="small">✓ Semua tagihan periode ini sudah lunas.</p>');
