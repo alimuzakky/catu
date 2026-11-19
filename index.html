@@ -591,6 +591,21 @@ tr.sel td{background:var(--band)}
           <p class="small" id="dt-msg" role="status"></p>
           <div class="setrow"><button class="btn" type="button" id="dt-save">Simpan</button><button class="btn ghost" type="button" id="dt-cancel">Batal</button></div>
         </div>
+        <div class="card" id="rcv-box">
+          <div class="ch"><h3>Piutang (orang berhutang ke saya)</h3><button class="btn" type="button" id="rcv-new">+ Tambah piutang</button></div>
+          <p class="small" id="rcv-sum"></p>
+          <div id="rcv-list"></div>
+        </div>
+        <div class="card setcard" id="rcv-form" hidden>
+          <h3 id="rcv-form-title">Piutang baru</h3>
+          <label for="rc-n">Nama peminjam</label><input id="rc-n" class="inp" maxlength="60" placeholder="Contoh: Budi">
+          <label for="rc-a">Nominal dipinjam</label><div class="field"><span>Rp</span><input id="rc-a" inputmode="numeric" placeholder="0"></div>
+          <label for="rc-d">Tanggal tercatat</label><input id="rc-d" class="inp" type="date">
+          <label for="rc-note">Catatan (opsional)</label><input id="rc-note" class="inp" maxlength="120" placeholder="Contoh: pinjam untuk modal usaha">
+          <p class="small">Pembayaran dari peminjam dicatat lewat tombol Terima bayar pada daftar. Catatan ini terpisah dari transaksi pemasukan dan pengeluaran.</p>
+          <p class="small" id="rc-msg" role="status"></p>
+          <div class="setrow"><button class="btn" type="button" id="rc-save">Simpan</button><button class="btn ghost" type="button" id="rc-cancel">Batal</button></div>
+        </div>
         <div class="grid2">
           <div class="card"><div class="ch"><h3>Pembayaran utang per bulan</h3><span class="small">dihitung dari transaksi</span></div><div class="chart" id="c-utang-month"></div></div>
           <div class="card target" id="debt-target"><h3>Sisa utang</h3><label for="debt-left">Sisa utang saat ini</label>
@@ -717,7 +732,7 @@ tr.sel td{background:var(--band)}
         </div>
         <div class="card"><details><summary>Tabel kategori per bulan</summary><div class="tbl mx" id="kat-table"></div></details></div>
       </section>
-      <p class="small" id="ver" style="text-align:center;padding:8px 0">Catu · versi 19 Nov 2026 · dashboard lebih ringkas</p>
+      <p class="small" id="ver" style="text-align:center;padding:8px 0">Catu · versi 19 Nov 2026 · piutang + pembayaran</p>
     </main>
   </div>
 </div>
@@ -985,7 +1000,7 @@ $('#pin-save').onclick=async()=>{
 /* ---------- state & data ---------- */
 let M=Array.from({length:12},()=>({in:null,out:null,debt:null,sv:null,kid:null}));
 let CM={out:[],in:[]}, BUD={}, cycDay=28, yr=new Date().getFullYear(), startOverride=null;
-const state={dOpen:{},debtEdit:null,sOpen:{},savEdit:null,pf:null,billEdit:null,ren:null,page:'dash',tab:'out',btype:'out',bcat:null,sel:null,cat:null,q:'',type:'out',del:null};
+const state={dOpen:{},debtEdit:null,rOpen:{},rcvEdit:null,sOpen:{},savEdit:null,pf:null,billEdit:null,ren:null,page:'dash',tab:'out',btype:'out',bcat:null,sel:null,cat:null,q:'',type:'out',del:null};
 let TX=[], start=null, loaded=false, busy=false;
 let cyc={all:[],rows:[],outs:[],ins:[],totIn:0,totOut:0,left:0,d0:todayKey(),d1:todayKey()};
 function norm(id,x){const t=x.t==='in'?'in':'out'; let c=cap(String(x.c||'').trim()); if(t==='in'&&c==='Hutang')c='Pinjaman masuk'; return {id,d:String(x.d||''),n:up(String(x.n||'').trim()),t,c,a:Number(x.a)||0}}
@@ -1066,7 +1081,7 @@ function budHTML(o={}){
     else inner=`<span class="nm">${catIcon(i.c,1)}${esc(i.c)}</span><span class="vl">${rp(i.s)}</span><span class="bst" style="color:var(--ink-3)">Tanpa anggaran</span>`;
     return o.interactive?`<button type="button" class="cat" data-c="${esc(i.c)}" aria-pressed="${state.cat===i.c}">${inner}</button>`:o.detail?`<button type="button" class="cat" data-dt="${esc(i.c)}" aria-haspopup="dialog">${inner}</button>`:`<div class="cat">${inner}</div>`}).join('');
 }
-let dtlRows=[], BILLS=[], DEBTS=[], SAVS=[], WDS=[];
+let dtlRows=[], BILLS=[], DEBTS=[], SAVS=[], WDS=[], RCVS=[], RPS=[];
 function itemsHTML(rows){
   if(!rows.length)return '<p class="empty-note">Belum ada transaksi.</p>';
   const sorted=rows.slice().sort((a,b)=>a.d<b.d?1:a.d>b.d?-1:0);
@@ -1330,6 +1345,63 @@ document.addEventListener('click',async e=>{
     try{await saveTxFast({d:todayKey(),n:d.n,t:'out',c:'Hutang',a});toast(`Pembayaran ${d.n} dicatat: ${rp(a)}`,'good')}catch(err){toast('Pembayaran gagal dicatat dan dibatalkan.','bad')}
   }
 });
+
+/* ---------- piutang ---------- */
+function rcvCalc(){
+  const items=RCVS.map(v=>{const pays=RPS.filter(p=>p.rid===v.id).sort((a,b)=>a.d<b.d?1:a.d>b.d?-1:0);const paid=pays.reduce((a,p)=>a+p.a,0);return {v,pays,paid,left:Math.max(0,v.a-paid),over:Math.max(0,paid-v.a)}});
+  return {items,total:items.reduce((a,r)=>a+r.v.a,0),paid:items.reduce((a,r)=>a+Math.min(r.paid,r.v.a),0),left:items.reduce((a,r)=>a+r.left,0)};
+}
+function rcvListHTML(C){
+  if(!C.items.length)return '<p class="empty-note">Belum ada piutang. Tekan + Tambah piutang untuk mencatat orang yang berhutang kepada Anda.</p>';
+  return C.items.map((r,i)=>{
+    const v=r.v, pct=v.a?Math.min(100,r.paid/v.a*100):0, open=state.rOpen[v.id];
+    const pill=r.left===0?'<span class="pill ok">✓ Lunas</span>':`<span class="pill soft">${pct.toFixed(0)}% kembali</span>`;
+    return `<div class="debt rcv"><div class="dh"><h4>${i+1}. ${esc(v.n)}</h4>${pill}</div>
+      <dl class="dl"><div><dt>Nominal dipinjam</dt><dd>${rp(v.a)}</dd></div><div><dt>Tanggal tercatat</dt><dd>${v.d?dfull(v.d):'–'}</dd></div><div><dt>Belum dibayar</dt><dd class="strong">${rp(r.left)}</dd></div></dl>
+      <div class="track"><span class="fill sv" style="width:${pct}%"></span></div>
+      <p class="small">Sudah dibayar ${rp(Math.min(r.paid,v.a))} dari ${rp(v.a)} · ${r.pays.length} pembayaran${r.over?` · kelebihan bayar ${rp(r.over)}`:''}${v.note?` · ${esc(v.note)}`:''}</p>
+      <div class="acts2">${r.left?`<button class="btn sm" type="button" data-rpay="${v.id}">Terima bayar</button>`:''}<button class="btn ghost sm" type="button" data-rhist="${v.id}">Riwayat</button><button class="btn ghost sm" type="button" data-redit="${v.id}">Ubah</button><button class="btn ghost sm" type="button" data-rdel="${v.id}" aria-label="Hapus ${esc(v.n)}">Hapus</button></div>
+      ${open==='pay'?`<div class="payrow wrap"><div class="field"><span>Rp</span><input inputmode="numeric" data-rpa="${v.id}" placeholder="Jumlah dibayar" aria-label="Jumlah pembayaran ${esc(v.n)}"></div><input class="inp" type="date" data-rpd="${v.id}" value="${todayKey()}" aria-label="Tanggal pembayaran"><input class="inp" maxlength="120" data-rpn="${v.id}" placeholder="Catatan (opsional)" aria-label="Catatan pembayaran"><button class="btn sm" type="button" data-rpgo="${v.id}">Catat</button></div><p class="small">Sisa yang belum dibayar ${rp(r.left)}.</p>`:''}
+      ${open==='hist'?`<div class="hist">${r.pays.length?r.pays.map(p=>`<div><span>${p.d?dfull(p.d):'–'} · Pembayaran${p.note?' · '+esc(p.note):''} <button class="btn ghost sm" type="button" data-rpdel="${p.id}" aria-label="Hapus pembayaran">Hapus</button></span><b class="good">+ ${rp(p.a)}</b></div>`).join(''):'<p class="small">Belum ada pembayaran.</p>'}</div>`:''}
+    </div>`}).join('');
+}
+function openRcvForm(id){
+  state.rcvEdit=id||0; const x=RCVS.find(v=>v.id===id)||{n:'',a:0,d:todayKey(),note:''};
+  $('#rc-n').value=x.n; $('#rc-a').value=x.a?nf(x.a):''; $('#rc-d').value=x.d||todayKey(); $('#rc-note').value=x.note||''; $('#rc-msg').textContent='';
+  $('#rcv-form-title').textContent=id?'Ubah piutang':'Piutang baru'; $('#rcv-form').hidden=false; $('#rc-n').focus(); $('#rcv-form').scrollIntoView({behavior:'smooth',block:'center'});
+}
+$('#rcv-new').onclick=()=>openRcvForm(0);
+$('#rc-cancel').onclick=()=>{state.rcvEdit=null;$('#rcv-form').hidden=true};
+$('#rc-a').addEventListener('input',e=>{const n=parseNum(e.target.value);e.target.value=n?nf(n):''});
+document.addEventListener('input',e=>{const el=e.target.closest('[data-rpa]');if(el){const n=parseNum(el.value);el.value=n?nf(n):''}});
+$('#rc-save').onclick=async()=>{
+  const o={id:state.rcvEdit||undefined,n:$('#rc-n').value.trim(),a:parseNum($('#rc-a').value),d:$('#rc-d').value,note:$('#rc-note').value.trim()};
+  if(!o.n){$('#rc-msg').textContent='Isi nama peminjam.';return}
+  if(!o.a){$('#rc-msg').textContent='Isi nominal lebih dari 0.';return}
+  if(!o.d){$('#rc-msg').textContent='Isi tanggal tercatat.';return}
+  const b=$('#rc-save'); b.disabled=true;
+  try{await call('saveRcv',[o]);state.rcvEdit=null;$('#rcv-form').hidden=true;toast('Piutang disimpan','good')}catch(e){$('#rc-msg').textContent=(e&&e.message)||'Gagal menyimpan.'}finally{b.disabled=false}
+};
+document.addEventListener('click',async e=>{
+  const g=k=>e.target.closest('['+k+']');
+  let el;
+  if(el=g('data-rpay')){const id=+el.dataset.rpay;state.rOpen[id]=state.rOpen[id]==='pay'?null:'pay';render();const i=document.querySelector(`[data-rpa="${id}"]`);if(i)i.focus();return}
+  if(el=g('data-rhist')){const id=+el.dataset.rhist;state.rOpen[id]=state.rOpen[id]==='hist'?null:'hist';render();return}
+  if(el=g('data-redit')){openRcvForm(+el.dataset.redit);return}
+  if(el=g('data-rdel')){const id=+el.dataset.rdel;
+    if(el.dataset.sure){try{await call('deleteRcv',[id]);toast('Piutang dan riwayat pembayarannya dihapus.')}catch(err){toast('Gagal menghapus','bad')}return}
+    el.dataset.sure='1';el.textContent='Yakin?';setTimeout(()=>{if(el.isConnected){el.textContent='Hapus';delete el.dataset.sure}},3000);return}
+  if(el=g('data-rpdel')){const id=+el.dataset.rpdel;
+    if(el.dataset.sure){try{await call('deleteRp',[id]);toast('Pembayaran dihapus. Sisa piutang dikembalikan.')}catch(err){toast('Gagal menghapus','bad')}return}
+    el.dataset.sure='1';el.textContent='Yakin?';setTimeout(()=>{if(el.isConnected){el.textContent='Hapus';delete el.dataset.sure}},3000);return}
+  if(el=g('data-rpgo')){const id=+el.dataset.rpgo,r=rcvCalc().items.find(x=>x.v.id===id),q=k=>document.querySelector(`[${k}="${id}"]`),a=parseNum(q('data-rpa').value),d=q('data-rpd').value,note=q('data-rpn').value.trim();
+    if(!r)return; if(!a){q('data-rpa').focus();toast('Isi jumlah pembayaran.','bad');return}
+    if(!d){toast('Isi tanggal pembayaran.','bad');return}
+    if(a>r.left){toast(`Pembayaran melebihi sisa piutang (${rp(r.left)}).`,'bad');return}
+    el.disabled=true;
+    try{await call('addRp',[{rid:id,a,d,note}]);state.rOpen[id]=null;render();toast(`Pembayaran dari ${r.v.n} dicatat: ${rp(a)}`,'good')}catch(err){el.disabled=false;toast((err&&err.message)||'Pembayaran gagal dicatat.','bad')}
+  }
+});
 function rUtang(){
   const rows=cyc.outs.filter(t=>t.c==='Hutang'), cyclePaid=sum(rows), total=mSum('debt');
   const months=M.filter(m=>m.debt).length, avg=months?total/months:0, C=debtCalc(), g=DEBTS.length?C.left:parseNum(getSetting('debt_left'));
@@ -1339,6 +1411,7 @@ function rUtang(){
     kpi('Sisa utang',g||DEBTS.length?rp(g):'–',null,'',DEBTS.length?`dari ${DEBTS.length} hutang · total ${rp(C.total)}`:(g?'sesuai isian Anda':'Isi kolom sisa utang'))+
     kpi('Perkiraan lunas',g&&avg?`${Math.ceil(g/avg)} bulan`:'–',null,'',avg?`rata-rata ${rp(avg)} per periode cicilan`:'Belum ada riwayat cicilan');
   drawBars($('#c-utang-month'),monthSingle('debt','var(--debt)','Utang dibayar'));
+  {const R=rcvCalc(); $('#rcv-list').innerHTML=rcvListHTML(R); $('#rcv-sum').textContent=R.items.length?`Belum dibayar ${rp(R.left)} dari total ${rp(R.total)} · ${R.items.filter(r=>!r.left).length} dari ${R.items.length} sudah lunas`:'';}
   $('#debt-list').innerHTML=debtListHTML(C); $('#debt-target').hidden=!!DEBTS.length;
   const orp=C.orphan.reduce((a,t)=>a+t.a,0);
   $('#debt-orphan').textContent=DEBTS.length&&orp?`Ada ${C.orphan.length} pembayaran Hutang (${rp(orp)}) yang namanya tidak cocok dengan daftar di atas, jadi tidak mengurangi sisa hutang mana pun. Samakan nama transaksi dengan nama hutang.`:'';
@@ -1800,7 +1873,7 @@ requestAnimationFrame(()=>requestAnimationFrame(()=>placeInd(false)));
 function applyData(d,fromCache){
   if(!fromCache){try{localStorage.setItem('kz_cache',JSON.stringify(d))}catch(e){}}
   TX=(d.tx||[]).map(t=>norm(t.id,t)).filter(t=>/^\d{4}-\d{2}-\d{2}$/.test(t.d)&&t.a>0);
-  Object.assign(settings,d.settings||{}); BILLS=d.bills||[]; DEBTS=d.debts||[]; SAVS=d.savs||[]; WDS=d.wds||[];
+  Object.assign(settings,d.settings||{}); BILLS=d.bills||[]; DEBTS=d.debts||[]; SAVS=d.savs||[]; WDS=d.wds||[]; RCVS=d.rcvs||[]; RPS=d.rps||[];
   if(d.lists){if(d.lists.exp&&d.lists.exp.length)EXP=d.lists.exp; if(d.lists.inc&&d.lists.inc.length)INC=d.lists.inc}
   cycDay=Math.min(28,Math.max(1,Number(d.cycleDay)||28));
   BUD={}; Object.keys(d.budgets||{}).forEach(k=>{const v=Number(d.budgets[k]);if(v>0)BUD[cap(k)]=v});
